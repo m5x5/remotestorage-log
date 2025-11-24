@@ -8,8 +8,8 @@ export default function RootLayout({ children }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Next.js RemoteStorage App</title>
-        <meta name="description" content="A Next.js app with RemoteStorage integration" />
+        <title>RemoteStorage Log Viewer</title>
+        <meta name="description" content="View logs from your RemoteStorage apps" />
       </head>
       <body className="min-h-screen bg-gray-50">
         <RemoteStorageProvider>

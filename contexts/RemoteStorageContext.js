@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo } from "react"
 import { useRemoteStorage } from "../hooks/use-remote-storage"
 import { useData } from "../hooks/use-data"
-import { MyModule } from "../lib/remotestorage-module"
+import { LogsModule } from "../lib/remotestorage-module"
 import RemoteStorageWidget from "../components/RemoteStorageWidget"
 
 const RemoteStorageContext = createContext(null)
@@ -15,9 +15,9 @@ const RemoteStorageContext = createContext(null)
 export function RemoteStorageProvider({ children }) {
   // Initialize RemoteStorage with your module
   const remoteStorage = useRemoteStorage({
-    modules: [MyModule],
+    modules: [LogsModule],
     accessClaims: {
-      'mymodule': 'rw'  // Read-write access to your module
+      'logs': 'r'  // Read-only access to logs is probably sufficient, but 'rw' is fine too if we wanted to manage them. Let's stick to 'r' as per request implied (show logs).
     }
   })
 
