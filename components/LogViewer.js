@@ -39,6 +39,19 @@ export default function LogViewer() {
     }
   }, [selectedLogContent]);
 
+  // Extract action from content
+  const logAction = useMemo(() => {
+    if (!selectedLogContent) return null;
+    try {
+      const parsed = typeof selectedLogContent === 'object' 
+        ? selectedLogContent 
+        : JSON.parse(selectedLogContent);
+      return parsed.action;
+    } catch (e) {
+      return null;
+    }
+  }, [selectedLogContent]);
+
   if (!isConnected) {
     return (
       <Card className="w-full max-w-md mx-auto mt-10">
@@ -53,7 +66,7 @@ export default function LogViewer() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-100px)]">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
       {/* Sidebar - Log List */}
       <Card className="md:col-span-1 flex flex-col h-full">
         <CardHeader className="pb-3">
@@ -78,27 +91,46 @@ export default function LogViewer() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead className="w-[100px]">Updated</TableHead>
+                      <TableHead className="w-[180px]">Created</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {logsList.map((log) => (
-                      <TableRow 
-                        key={log.name} 
-                        className={`cursor-pointer hover:bg-muted/50 ${selectedLog === log.name ? "bg-muted" : ""}`}
-                        onClick={() => loadLogContent(log.name)}
-                      >
-                        <TableCell className="font-medium">
-                          <div className="flex items-center">
-                            <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <span className="truncate max-w-[150px]" title={log.name}>{log.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {log.lastUpdated ? new Date(log.lastUpdated).toLocaleDateString() : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {logsList.map((log) => {
+                      // Extract timestamp from filename: log-1762612747613-63h71b
+                      let dateDisplay = '-';
+                      try {
+                        const match = log.name.match(/log-(\d+)-/);
+                        if (match && match[1]) {
+                          const timestamp = parseInt(match[1], 10);
+                          if (!isNaN(timestamp)) {
+                            dateDisplay = new Date(timestamp).toLocaleString();
+                          }
+                        } else if (log.lastUpdated) {
+                           // Fallback to lastUpdated if filename doesn't match
+                           dateDisplay = new Date(log.lastUpdated).toLocaleDateString();
+                        }
+                      } catch (e) {
+                        // ignore error
+                      }
+
+                      return (
+                        <TableRow 
+                          key={log.name} 
+                          className={`cursor-pointer hover:bg-muted/50 ${selectedLog === log.name ? "bg-muted" : ""}`}
+                          onClick={() => loadLogContent(log.name)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                              <span className="truncate max-w-[150px]" title={log.name}>{log.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {dateDisplay}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -118,9 +150,9 @@ export default function LogViewer() {
                 </CardDescription>
               )}
             </div>
-            {selectedLog && (
+            {logAction && (
               <Badge variant="outline">
-                {formattedContent ? `${formattedContent.length} chars` : 'Empty'}
+                {logAction}
               </Badge>
             )}
           </div>

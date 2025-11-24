@@ -14,6 +14,8 @@ export function useData(remoteStorage) {
   const [logsList, setLogsList] = useState([])
   const [selectedLog, setSelectedLog] = useState(null)
   const [selectedLogContent, setSelectedLogContent] = useState(null)
+  const [analyticsData, setAnalyticsData] = useState(null)
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isConnected, setIsConnected] = useState(false)
 
@@ -109,16 +111,73 @@ export function useData(remoteStorage) {
     }
   }, [remoteStorage, isConnected])
 
+  /**
+   * Load analytics data (log types)
+   * Caches the result to avoid re-fetching unless forced
+   */
+  const loadAnalyticsData = useCallback(async (force = false) => {
+    if (!remoteStorage?.logs || !isConnected || logsList.length === 0) {
+      return
+    }
+
+    // Return cached data if available and not forced
+    if (analyticsData && !force) {
+      return analyticsData
+    }
+
+    setIsAnalyticsLoading(true)
+
+    try {
+      const promises = logsList.map(async (log) => {
+        try {
+          const content = await remoteStorage.logs.getLog(log.name)
+          return { ...log, content }
+        } catch (e) {
+          return { ...log, content: null }
+        }
+      })
+      
+      const logsWithContent = await Promise.all(promises)
+
+      const typeCounts = {}
+      logsWithContent.forEach(log => {
+        try {
+          const parsed = typeof log.content === 'object' ? log.content : JSON.parse(log.content)
+          const action = parsed.action || 'Unknown'
+          typeCounts[action] = (typeCounts[action] || 0) + 1
+        } catch (e) {
+          typeCounts['Error/Invalid'] = (typeCounts['Error/Invalid'] || 0) + 1
+        }
+      })
+
+      const data = Object.entries(typeCounts).map(([name, value]) => ({
+        name,
+        value
+      }))
+
+      setAnalyticsData(data)
+      return data
+    } catch (error) {
+      console.error("Error loading analytics data:", error)
+      return []
+    } finally {
+      setIsAnalyticsLoading(false)
+    }
+  }, [remoteStorage, isConnected, logsList, analyticsData])
+
   return {
     // State
     isLoading,
     isConnected,
+    analyticsData,
+    isAnalyticsLoading,
 
     // Logs
     logsList,
     selectedLog,
     selectedLogContent,
     loadLogContent,
+    loadAnalyticsData,
 
     // Utility
     reload: loadLogsList
